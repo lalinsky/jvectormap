@@ -62,6 +62,19 @@ class Converter:
     else:
       self.insets = []
 
+  def getCountryCode(self, feature):
+    code = feature.GetFieldAsString(self.country_code_index)
+    if code is None:
+      feature.DumpReadable()
+      raise ValueError('country code not found')
+    return code
+
+  def getCountryName(self, feature):
+    name = feature.GetFieldAsString(self.country_name_index)
+    if name is None:
+      feature.DumpReadable()
+      raise ValueError('country name not found')
+    return name.decode(self.inputFileEncoding)
 
   def loadData(self):
     source = ogr.Open( self.inputFile )
@@ -88,11 +101,13 @@ class Converter:
     else:
       nextCode = 0
       for feature in layer:
-        code = feature.GetFieldAsString(self.country_code_index)
+        code = self.getCountryCode(feature)
         if code == '-99':
           code = '_'+str(nextCode)
           nextCode += 1
-        name = feature.GetFieldAsString(self.country_name_index).decode(self.inputFileEncoding)
+        name = self.getCountryName(feature)
+        if name in self.codes:
+          raise ValueError('duplicate country %s' % name)
         self.codes[name] = code
       layer.ResetReading()
 
@@ -109,7 +124,7 @@ class Converter:
           shapelyGeometry = shapelyGeometry.buffer(0, 1)
         shapelyGeometry = self.applyFilters(shapelyGeometry)
         if shapelyGeometry:
-          name = feature.GetFieldAsString(self.country_name_index).decode(self.inputFileEncoding)
+          name = self.getCountryName(feature)
           code = self.codes[name]
           self.features[code] = {"geometry": shapelyGeometry, "name": name, "code": code}
       else:
@@ -234,8 +249,8 @@ parser = argparse.ArgumentParser(conflict_handler='resolve')
 parser.add_argument('input_file')
 parser.add_argument('output_file')
 parser.add_argument('--scale', type=float)
-parser.add_argument('--country_code_index', default=0, type=int)
-parser.add_argument('--country_name_index', default=1, type=int)
+parser.add_argument('--country_code_index', default="ISO_A3")
+parser.add_argument('--country_name_index', default="ADMIN")
 parser.add_argument('--codes_file', default='', type=str)
 parser.add_argument('--where', default='', type=str)
 parser.add_argument('--width', type=float)
