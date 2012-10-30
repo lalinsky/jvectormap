@@ -9,7 +9,7 @@ import argparse
 import sys
 from osgeo import ogr
 from osgeo import osr
-import anyjson
+import json
 import shapely.geometry
 import codecs
 
@@ -29,7 +29,7 @@ class Map:
 
   def getJSCode(self):
     map = {"paths": self.paths, "width": self.width, "height": self.height, "insets": self.insets, "projection": self.projection}
-    return "$.fn.vectorMap('addMap', '"+self.name+"_"+self.projection['type']+"_"+self.language+"',"+anyjson.serialize(map)+');'
+    return "$.fn.vectorMap('addMap', '"+self.name+"_"+self.projection['type']+"_"+self.language+"',"+json.dumps(map,indent=2)+');'
 
 
 class Converter:
